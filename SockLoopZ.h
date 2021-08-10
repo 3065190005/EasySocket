@@ -37,8 +37,9 @@ public:
 		tagStatus m_status;
 	}vecSockZ;
 
-	void clearVec();
+	void clearVec(bool sockclose = true);
 	bool pushZSock(bool isclear,int count, ...);
+	bool pushZSock(bool isclear, std::vector<SocketZ> vec);
 	bool runLoop(std::vector<vecSockZ> & vec, int sleepnum = 0);
 
 public:

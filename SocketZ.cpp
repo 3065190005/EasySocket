@@ -189,7 +189,8 @@ end:
 
 int SocketZ::recv(char * buf, int lens)
 {
-	int recvLen = (lens == -1 ? sizeof(buf) : lens);
+	int templen = _msize(buf) / sizeof(char);
+	int recvLen = (lens == -1 ? templen : lens);
 	int bufref = 0;
 	int buflen = 0;
 	int offset = 0;
@@ -201,6 +202,9 @@ int SocketZ::recv(char * buf, int lens)
 				break;
 			}
 			else {
+				DWORD word = GetLastError();
+				std::cout << "[-] error " << errno << std::endl;
+				std::wcout << "[-] Error " << word << std::endl;
 				return -1;
 			}
 		}
@@ -211,12 +215,12 @@ int SocketZ::recv(char * buf, int lens)
 		bufref += buflen;
 
 		if (bufref == sizeof(buf)) {
-			offset = sizeof(buf);
-			char * tchar = new char[sizeof(buf)];
+			offset = _msize(buf) / sizeof(char);
+			char * tchar = new char[offset]();
 			strcpy(tchar, buf);
 			delete buf;
-			buf = new char[sizeof(tchar) + recvLen];
-			memset(buf, 0, sizeof(buf));
+			buf = new char[offset + recvLen];
+			memset(buf, 0, offset);
 			strcpy(buf, tchar);
 			delete tchar;
 			tchar = nullptr;
@@ -257,14 +261,14 @@ int SocketZ::send(const char * buf, int lens)
 
 int SocketZ::recv(std::string & buf)
 {
-	char * sbuf = new char[2048];
+	static char * sbuf = new char[2048]();
 	int len = SocketZ::recv(sbuf, -1);
 	buf.clear();
 	buf.append(sbuf);
 	return len;
 }
 
-int SocketZ::send(std::string & buf)
+int SocketZ::send(std::string && buf)
 {
 	return SocketZ::send(buf.c_str(), buf.length());
 }

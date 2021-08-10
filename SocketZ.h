@@ -45,7 +45,7 @@ public:
 	int recv(char * buf, int lens);
 	int send(const char * buf, int lens);
 	int recv(std::string & buf);
-	int send(std::string & buf);
+	int send(std::string && buf);
 	bool close();
 
 public:

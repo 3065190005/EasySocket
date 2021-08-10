@@ -26,8 +26,14 @@ SockLoopZ::~SockLoopZ()
 {
 }
 
-void SockLoopZ::clearVec()
+void SockLoopZ::clearVec(bool sockclose)
 {
+	if (sockclose) {
+		for (auto i : this->m_sockvec) {
+			i.close();
+		}
+	}
+
 	this->m_sockvec.clear();
 }
 
@@ -56,6 +62,23 @@ bool SockLoopZ::pushZSock(bool isclear,int count, ...)
 	}
 
 	for (auto i : tempVec) {
+		m_sockvec.push_back(i);
+	}
+
+	return true;
+}
+
+bool SockLoopZ::pushZSock(bool isclear, std::vector<SocketZ> vec)
+{
+	if (vec.empty()) {
+		return false;
+	}
+
+	if (isclear) {
+		this->m_sockvec.clear();
+	}
+
+	for (auto i : vec) {
 		m_sockvec.push_back(i);
 	}
 
@@ -109,13 +132,9 @@ bool SockLoopZ::runLoop(std::vector<vecSockZ> & vec, int sleepnum)
 		if ((tagStatus)status != tagStatus::None) {
 			value.m_sock = index;
 			value.m_status = (SockLoopZ::tagStatus)status;
+			vec.push_back(value);
 		}
 	}
-
-	if (vec.empty()) {
-		return false;
-	}
-
 	return true;
 }
 
