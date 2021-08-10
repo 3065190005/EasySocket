@@ -85,13 +85,13 @@ bool SockLoopZ::pushZSock(bool isclear, std::vector<SocketZ> vec)
 	return true;
 }
 
-bool SockLoopZ::runLoop(std::vector<vecSockZ> & vec, int sleepnum)
+bool SockLoopZ::runLoop(std::vector<vecSockZ> &ret, int sleepnum)
 {
 	if (sleepnum != 0) {
 		::Sleep(sleepnum);
 	}
 
-	vec.clear();
+	ret.clear();
 
 	fd_set rset;
 	fd_set wset;
@@ -100,17 +100,17 @@ bool SockLoopZ::runLoop(std::vector<vecSockZ> & vec, int sleepnum)
 	rset = m_vecset;
 	wset = m_vecset;
 
-	int ret = 0;
+	int ref = 0;
 
 
 	if (TestTimeout(-1, -1)) {
-		ret = select(0, &rset, &wset, NULL, NULL);
+		ref = select(0, &rset, &wset, NULL, NULL);
 	}
 	else {
-		ret = select(0, &rset, &wset, NULL, &m_timeout);
+		ref = select(0, &rset, &wset, NULL, &m_timeout);
 	}
 
-	if (ret <= 0) {
+	if (ref <= 0) {
 		return false;
 	}
 
@@ -132,7 +132,7 @@ bool SockLoopZ::runLoop(std::vector<vecSockZ> & vec, int sleepnum)
 		if ((tagStatus)status != tagStatus::None) {
 			value.m_sock = index;
 			value.m_status = (SockLoopZ::tagStatus)status;
-			vec.push_back(value);
+			ret.push_back(value);
 		}
 	}
 	return true;

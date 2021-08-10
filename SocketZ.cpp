@@ -109,7 +109,7 @@ end:
 	return false;
 }
 
-bool SocketZ::createSocket(std::string && ipaddr, short port, SocketZ::ZsockType type)
+bool SocketZ::createServer(std::string && ipaddr, short port, SocketZ::ZsockType type)
 {
 	if (!testFor(ZsockStatus::isNone, this->m_status) || port <= 0) {
 		goto end;
@@ -275,7 +275,10 @@ int SocketZ::send(std::string && buf)
 
 bool SocketZ::close()
 {
-	if (this->m_sock > 0) {closesocket(this->m_sock);}
+	if (this->m_sock > 0) {
+		setBlock(false);
+		closesocket(this->m_sock);
+	}
 	zeroInit();
 	return true;
 }

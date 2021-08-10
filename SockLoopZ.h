@@ -21,15 +21,19 @@ class SocketZ;
 class SockLoopZ
 {
 public:
+	// default 
 	SockLoopZ();
+
+	// default and Call setTimeout
 	SockLoopZ(timeval timeout);
 	~SockLoopZ();
 
+	// socket status
 	enum class tagStatus {
-		None = 0,
-		Read,
-		Write,
-		RandW
+		None = 0,	// can not read and write
+		Read,		// can read
+		Write,		// can write
+		RandW		// can read and write
 	};
 
 	typedef struct tagvecSockZ {
@@ -37,16 +41,28 @@ public:
 		tagStatus m_status;
 	}vecSockZ;
 
+	// clear select vector target
+	// sockclose| Call close
 	void clearVec(bool sockclose = true);
+
+	// isclear|call clear before the push_back
+	// push_back to SocketZ vector from arg
 	bool pushZSock(bool isclear,int count, ...);
+	// push_back to SocketZ vector from vec
 	bool pushZSock(bool isclear, std::vector<SocketZ> vec);
-	bool runLoop(std::vector<vecSockZ> & vec, int sleepnum = 0);
+
+	// select loop vector and return ret when target socket is not None
+	bool runLoop(std::vector<vecSockZ> & ret, int sleepnum = 0);
 
 public:
+
+	// set select Timeout from struct timeval
 	void setTimeout(timeval timeout) {
 		this->m_timeout = timeout;
 	}
 
+	// set select Timeout from two value
+	// -1,-1 == block another is Unblock
 	void setTimeout(int sec, int nsec) {
 		timeval timeout;
 		timeout.tv_sec = sec;
@@ -66,15 +82,18 @@ public:
 		return false;
 	}
 
+	// add to m_vecset when SocketZ call the setBlock(true)
 	void addToFdVec(int sock);
+
+	// remote from m_vecset when SocketZ call the setBlock(false)
 	void removeToFdVec(int sock);
 
 
 private:
-	std::vector<SocketZ> m_sockvec;
-	timeval m_timeout;
+	std::vector<SocketZ> m_sockvec;	// select target
+	timeval m_timeout;		// select timeout
 
-	static fd_set m_vecset;
+	static fd_set m_vecset;	// single fd vector
 };
 
 #endif
