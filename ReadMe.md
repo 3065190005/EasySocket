@@ -34,7 +34,9 @@ int main() {
 				std::string buf;
 				client.recv(buf);
 				std::cout << "[+] server recv " << buf.c_str() << std::endl;
+				selectLoop.popZSock(socket.getSocket());
 				client.close();
+				socket.close();
 			}
 		}
 	}

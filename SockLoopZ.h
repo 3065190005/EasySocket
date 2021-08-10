@@ -51,6 +51,9 @@ public:
 	// push_back to SocketZ vector from vec
 	bool pushZSock(bool isclear, std::vector<SocketZ> vec);
 
+	// pop SocketZ from m_sockvec ,remove = remove from m_sockvec
+	SocketZ popZSock(int sockfd, bool remove = true);
+
 	// select loop vector and return ret when target socket is not None
 	bool runLoop(std::vector<vecSockZ> & ret, int sleepnum = 0);
 

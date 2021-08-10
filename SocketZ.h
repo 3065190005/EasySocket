@@ -32,6 +32,7 @@ private:
 	static bool isInit;
 
 public:
+	int refadd = 0;
 	// default
 	SocketZ();
 

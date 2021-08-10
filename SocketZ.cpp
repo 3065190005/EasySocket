@@ -8,6 +8,8 @@ bool SocketZ::isInit = false;
 
 SocketZ::SocketZ()
 {
+
+	refadd++;
 	zeroInit();
 
 #ifdef _WIN32
@@ -28,6 +30,7 @@ SocketZ::SocketZ(std::string & ipaddr, short port, SocketZ::ZsockType type)
 
 SocketZ::~SocketZ()
 {
+	refadd--;
 }
 
 SocketZ::SocketZ(const SocketZ & c)
@@ -158,6 +161,7 @@ SocketZ SocketZ::accept()
 	clisock.m_sockaddr = clntAddr;
 	clisock.m_socktype = this->m_socktype;
 	clisock.m_status = ZsockStatus::isLoop;
+	clisock.setBlock(true);
 	return clisock;
 
 end:
@@ -276,7 +280,7 @@ int SocketZ::send(std::string && buf)
 bool SocketZ::close()
 {
 	if (this->m_sock > 0) {
-		setBlock(false);
+		setBlock(true);
 		closesocket(this->m_sock);
 	}
 	zeroInit();
@@ -286,10 +290,6 @@ bool SocketZ::close()
 void SocketZ::setBlock(bool block)
 {
 	if (m_sock <= 0) {
-		return;
-	}
-
-	if (this->m_block == block) {
 		return;
 	}
 

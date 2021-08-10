@@ -85,6 +85,17 @@ bool SockLoopZ::pushZSock(bool isclear, std::vector<SocketZ> vec)
 	return true;
 }
 
+SocketZ SockLoopZ::popZSock(int sockfd, bool remove)
+{
+	for (auto i = m_sockvec.begin(); i != m_sockvec.end(); i ++) {
+		if (i->getSocket() == sockfd) {
+			SocketZ ret = (*i);
+			m_sockvec.erase(i);
+			return ret;
+		}
+	}
+}
+
 bool SockLoopZ::runLoop(std::vector<vecSockZ> &ret, int sleepnum)
 {
 	if (sleepnum != 0) {
