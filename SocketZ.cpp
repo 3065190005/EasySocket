@@ -41,6 +41,7 @@ SocketZ::SocketZ(const SocketZ & c)
 	this->m_port = c.m_port;
 	this->m_ipaddr = c.m_ipaddr;
 	this->m_sockaddr = c.m_sockaddr;
+	this->m_udpSocketAddr = c.m_udpSocketAddr;
 	this->m_socktype = c.m_socktype;
 	this->m_status = c.m_status;
 }
@@ -61,6 +62,11 @@ bool SocketZ::create(std::string && ipaddr, short port, SocketZ::ZsockType type)
 	m_ipaddr.append(ipaddr);
 	m_socktype = type;
 	m_status = ZsockStatus::isCrea;
+
+	if (type == ZsockType::udp) {
+		m_status = ZsockStatus::isLoop;
+	}
+
 	return true;
 
 end:
@@ -94,7 +100,7 @@ end:
 
 bool SocketZ::listen(int maxlist)
 {
-	if (!testFor(ZsockStatus::isBind, this->m_status)) {
+	if (!testFor(ZsockStatus::isBind, this->m_status) || m_socktype != ZsockType::tcp) {
 		goto end;
 	}
 
@@ -114,23 +120,45 @@ end:
 
 bool SocketZ::createServer(std::string && ipaddr, short port, SocketZ::ZsockType type)
 {
-	if (!testFor(ZsockStatus::isNone, this->m_status) || port <= 0) {
-		goto end;
+	if (type == ZsockType::tcp) {
+		if (!testFor(ZsockStatus::isNone, this->m_status) || port <= 0) {
+			goto end;
+		}
+
+		if (!this->create(ipaddr.c_str(), port, type)) {
+			goto end;
+		}
+
+		if (!this->bind()) {
+			goto end;
+		}
+
+		if (!this->listen(20)) {
+			goto end;
+		}
+
+		return true;
 	}
 
-	if (!this->create(ipaddr.c_str(), port, type)) {
-		goto end;
-	}
+	if (type == ZsockType::udp) {
+		if (!testFor(ZsockStatus::isNone, this->m_status) || port <= 0) {
+			goto end;
+		}
 
-	if (!this->bind()) {
-		goto end;
-	}
+		if (!this->create(ipaddr.c_str(), port, type)) {
+			goto end;
+		}
 
-	if (!this->listen(20)) {
-		goto end;
-	}
+		m_status = ZsockStatus::isCrea;
 
-	return true;
+		if (!this->bind()) {
+			goto end;
+		}
+
+		m_status = ZsockStatus::isLoop;
+
+		return true;
+	}
 
 end:
 	this->close();
@@ -142,7 +170,7 @@ SocketZ SocketZ::accept()
 	SocketZ clisock;
 	char * cli_ip = nullptr;
 
-	if (!testFor(ZsockStatus::isList, this->m_status)) {
+	if (!testFor(ZsockStatus::isList, this->m_status) || m_socktype != ZsockType::tcp) {
 		goto end;
 	}
 
@@ -159,6 +187,7 @@ SocketZ SocketZ::accept()
 	clisock.m_port = ::ntohs(clntAddr.sin_port);
 	clisock.m_ipaddr.append(cli_ip);
 	clisock.m_sockaddr = clntAddr;
+	clisock.m_udpSocketAddr = m_udpSocketAddr;
 	clisock.m_socktype = this->m_socktype;
 	clisock.m_status = ZsockStatus::isLoop;
 	clisock.setBlock(true);
@@ -170,7 +199,7 @@ end:
 
 bool SocketZ::connect()
 {
-	if (!testFor(ZsockStatus::isCrea, this->m_status)) {
+	if (!testFor(ZsockStatus::isCrea, this->m_status) || m_socktype != ZsockType::tcp) {
 		goto end;
 	}
 
@@ -193,6 +222,10 @@ end:
 
 int SocketZ::recv(char * buf, int lens)
 {
+	if (m_socktype != ZsockType::tcp) {
+		return -11;
+	}
+
 	int templen = _msize(buf) / sizeof(char);
 	int recvLen = (lens == -1 ? templen : lens);
 	int bufref = 0;
@@ -218,7 +251,8 @@ int SocketZ::recv(char * buf, int lens)
 
 		bufref += buflen;
 
-		if (bufref == sizeof(buf)) {
+		int temp = (_msize(buf) / sizeof(char));
+		if (bufref == temp) {
 			offset = _msize(buf) / sizeof(char);
 			char * tchar = new char[offset]();
 			strcpy(tchar, buf);
@@ -240,6 +274,10 @@ int SocketZ::recv(char * buf, int lens)
 
 int SocketZ::send(const char * buf, int lens)
 {
+	if (m_socktype != ZsockType::tcp) {
+		return -11;
+	}
+
 	int tmp;
 	size_t total = lens;
 	const char *p = buf;
@@ -263,18 +301,131 @@ int SocketZ::send(const char * buf, int lens)
 	return tmp;
 }
 
+int SocketZ::recvfrom(char * buf, int lens)
+{
+	int templen = _msize(buf) / sizeof(char);
+	int recvLen = (lens == -1 ? templen : lens);
+	int bufref = 0;
+	int buflen = 0;
+	int offset = 0;
+	int rs = 1;
+	while (rs) {
+		memset(&m_udpSocketAddr, 0, sizeof(SOCKADDR_IN));
+		int structLen = sizeof(m_udpSocketAddr);
+		buflen = ::recvfrom(m_sock, buf + offset, recvLen, 0,(SOCKADDR*)&m_udpSocketAddr,&structLen);
+		if (buflen < 0) {
+			if (errno == EAGAIN || errno == EINTR) {
+				break;
+			}
+			else {
+				DWORD word = GetLastError();
+				std::cout << "[-] error " << errno << std::endl;
+				std::wcout << "[-] Error " << word << std::endl;
+				return -1;
+			}
+		}
+		else if (buflen == 0) {
+			return -2;
+		}
+
+		bufref += buflen;
+		int temp = (_msize(buf) / sizeof(char));
+		if (bufref == temp) {
+			offset = _msize(buf) / sizeof(char);
+			char * tchar = new char[offset]();
+			strcpy(tchar, buf);
+			delete buf;
+			buf = new char[offset + recvLen];
+			memset(buf, 0, offset);
+			strcpy(buf, tchar);
+			delete tchar;
+			tchar = nullptr;
+			rs = 1;
+		}
+		else {
+			rs = 0;
+		}
+
+	}
+	return bufref;
+}
+
+int SocketZ::sendto(const char * buf, int lens, SOCKADDR_IN address)
+{
+	int tmp;
+	size_t total = lens;
+	const char *p = buf;
+	while (1) {
+		tmp = ::sendto(m_sock, p, total, 0,(SOCKADDR*)&address,sizeof(address));
+		if (tmp < 0) {
+			if (errno == EINTR)
+				return -1;
+			if (errno == EAGAIN) {
+				::Sleep(1);
+				continue;
+			}
+			return -1;
+		}
+		if (tmp == total) {
+			return lens;
+		}
+		total -= tmp;
+		p += tmp;
+	}
+	return tmp;
+}
+
 int SocketZ::recv(std::string & buf)
 {
+	if (m_socktype != ZsockType::tcp || m_status != ZsockStatus::isLoop) {
+		return -11;
+	}
+
 	static char * sbuf = new char[2048]();
-	int len = SocketZ::recv(sbuf, -1);
+	int len = -1;
+	len = SocketZ::recv(sbuf, -1);
 	buf.clear();
-	buf.append(sbuf);
+	if (len > 0) {
+		buf.append(sbuf);
+	}
 	return len;
 }
 
 int SocketZ::send(std::string && buf)
 {
+	if (m_socktype != ZsockType::tcp || m_status != ZsockStatus::isLoop) {
+		return -11;
+	}
 	return SocketZ::send(buf.c_str(), buf.length());
+}
+
+int SocketZ::udpRecv(std::string & buf)
+{
+	if (m_socktype != ZsockType::udp || m_status != ZsockStatus::isLoop) {
+		return -11;
+	}
+
+	static char * sbuf = new char[2048]();
+	int len = -1;
+	len = SocketZ::recvfrom(sbuf, -1);
+	buf.clear();
+	if (len > 0) {
+		buf.append(sbuf);
+	}
+	return len;
+}
+
+int SocketZ::udpSend(std::string && buf, std::string && ip, int port)
+{
+	if (m_socktype != ZsockType::udp || m_status != ZsockStatus::isLoop) {
+		return -11;
+	}
+	SOCKADDR_IN address;
+	address.sin_addr.s_addr = inet_addr(ip.c_str());
+	address.sin_port = htons(port);
+	address.sin_family = AF_INET;
+
+	return SocketZ::sendto(buf.c_str(), buf.length(),address);
 }
 
 bool SocketZ::close()
@@ -323,6 +474,23 @@ bool SocketZ::testFor(ZsockStatus src, ZsockStatus tar)
 	return false;
 }
 
+int SocketZ::getSocketPort()
+{
+	if (m_socktype == ZsockType::tcp) {
+		if (m_status == ZsockStatus::isLoop) {
+			return ::ntohs(m_sockaddr.sin_port);
+		}
+	}
+	else if(m_socktype == ZsockType::udp){
+		if (m_status == ZsockStatus::isLoop) {
+			return ::ntohs(m_udpSocketAddr.sin_port);
+		}
+	}
+
+
+	return -1;
+}
+
 void SocketZ::zeroInit()
 {
 	this->m_port = 0;
@@ -332,5 +500,6 @@ void SocketZ::zeroInit()
 	this->m_status = ZsockStatus::isNone;
 	this->m_socktype = SocketZ::ZsockType::tcp;
 	memset(&this->m_sockaddr, 0, sizeof(SOCKADDR_IN));
+	memset(&this->m_udpSocketAddr, 0, sizeof(SOCKADDR_IN));
 	setBlock(true);
 }

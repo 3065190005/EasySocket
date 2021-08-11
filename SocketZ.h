@@ -17,7 +17,7 @@
 
 class SocketZ
 {
-private:
+public:
 	enum class ZsockStatus {
 		isNone,	// can create
 		isCrea,	// can bind
@@ -68,12 +68,24 @@ public:
 	// send tcp
 	int send(const char * buf, int lens);
 
+	// recv udp
+	int recvfrom(char * buf, int lens);
+
+	// send udp
+	int sendto(const char * buf, int lens, SOCKADDR_IN address);
+
 	// recv interface(auto
 	int recv(std::string & buf);
 
 	// send interface(auto
 	int send(std::string && buf);
 
+	// udp recv(auto
+	int udpRecv(std::string & buf);
+
+	// udp send(auto
+	int udpSend(std::string && buf, std::string && ip, int port);
+	
 	// close socket and init class status to isNone
 	bool close();
 
@@ -86,6 +98,9 @@ public:
 
 	// test class socket status
 	bool testFor(ZsockStatus src, ZsockStatus tar);
+
+	int getSocketPort();
+	std::string getSocketAddress();
 
 public:
 
@@ -105,6 +120,7 @@ private:
 	short m_port;					// target port
 	std::string m_ipaddr;			// target address
 	SOCKADDR_IN m_sockaddr;			// socket addr
+	SOCKADDR_IN m_udpSocketAddr;	// udp socket addr temp
 	SocketZ::ZsockType m_socktype;	// socket protocol - tcp or udp
 	SocketZ::ZsockStatus m_status;	// class status , None Bind Listen Accept Loop
 };
