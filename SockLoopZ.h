@@ -36,6 +36,7 @@ public:
 		RandW		// can read and write
 	};
 
+	// runLoop block type
 	typedef struct tagvecSockZ {
 		SocketZ m_sock;
 		tagStatus m_status;
@@ -53,6 +54,7 @@ public:
 
 	// pop SocketZ from m_sockvec ,remove = remove from m_sockvec
 	SocketZ popZSock(int sockfd, bool remove = true);
+	void popZSock(SocketZ & sock, bool remove = true);
 
 	// select loop vector and return ret when target socket is not None
 	bool runLoop(std::vector<vecSockZ> & ret, int sleepnum = 0);

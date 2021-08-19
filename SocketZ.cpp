@@ -474,6 +474,12 @@ bool SocketZ::testFor(ZsockStatus src, ZsockStatus tar)
 	return false;
 }
 
+bool SocketZ::isLoopStatus()
+{
+	if (m_status == ZsockStatus::isLoop) { return true; }
+	return false;
+}
+
 int SocketZ::getSocketPort()
 {
 	if (m_socktype == ZsockType::tcp) {

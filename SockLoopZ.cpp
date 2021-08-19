@@ -96,6 +96,12 @@ SocketZ SockLoopZ::popZSock(int sockfd, bool remove)
 	}
 }
 
+void SockLoopZ::popZSock(SocketZ & sock, bool remove)
+{
+	popZSock(sock.getSocket(), remove);
+	return;
+}
+
 bool SockLoopZ::runLoop(std::vector<vecSockZ> &ret, int sleepnum)
 {
 	if (sleepnum != 0) {

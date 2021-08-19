@@ -99,6 +99,9 @@ public:
 	// test class socket status
 	bool testFor(ZsockStatus src, ZsockStatus tar);
 
+	// test status can be loop
+	bool isLoopStatus();
+
 	int getSocketPort();
 	std::string getSocketAddress();
 

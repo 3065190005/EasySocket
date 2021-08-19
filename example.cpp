@@ -36,6 +36,8 @@ int TcpServer() {
 		}
 	}
 
+	selectLoop.clearVec(true);
+
 	t1.join();
 	return 0;
 }
@@ -65,7 +67,7 @@ int UdpServer() {
 				std::string buf;
 				socket.udpRecv(buf);
 				std::cout << "[+] server recv " << buf.c_str() << std::endl;
-				selectLoop.popZSock(socket.getSocket());
+				selectLoop.popZSock(socket);
 				socket.close();
 			}
 		}
